@@ -4,11 +4,10 @@ import { useStore } from "../../context/StoreContext";
 import type { Producto } from "../../types/Producto";
 
 export function AdminProductsPage() {
-  const { productos, actualizarProducto, crearProducto, } = useStore();
-  const categorias = [...new Set(productos.map((producto) => producto.categoria))];
-  const [productoSeleccionado, setProductoSeleccionado] = useState(
-    productos[0]?.categoria ?? "",
-  );
+  const { productos, categorias, actualizarProducto, crearProducto, eliminarProducto,  } = useStore();
+const [productoSeleccionado, setProductoSeleccionado] = useState(
+  productos[0]?.id ?? "",
+);
   const [mensaje, setMensaje] = useState("");
   const [tipoMensaje, setTipoMensaje] = useState<"danger" | "success">(
     "success",
@@ -22,9 +21,10 @@ export function AdminProductsPage() {
   const [nuevoStock, setNuevoStock] = useState("");
   const [nuevoPrecio, setNuevoPrecio] = useState("");
   const [nuevaDescripcion, setNuevaDescripcion] = useState("");
-  const productoActual = productos.find(
-    (producto) => producto.categoria === productoSeleccionado,
-  );
+const productoActual = productos.find(
+  (producto) =>
+    producto.id === productoSeleccionado,
+);
   const guardarNuevoProducto = (
   evento: FormEvent<HTMLFormElement>,
 ) => {
@@ -87,6 +87,53 @@ export function AdminProductsPage() {
     );
     setTipoMensaje(guardado ? "success" : "danger");
   };
+  const borrarProducto = () => {
+  if (!productoActual) {
+    return;
+  }
+
+  const confirmar = window.confirm(
+    `¿Seguro que deseas eliminar "${productoActual.nombre}"?`,
+  );
+
+  if (!confirmar) {
+    return;
+  }
+  console.log(
+    "Producto a eliminar:",
+    productoActual.id,
+  );
+
+  const eliminado = eliminarProducto(
+    productoActual.id,
+  );
+   console.log(
+    "Resultado eliminarProducto:",
+    eliminado,
+  );
+
+  if (!eliminado) {
+    setTipoMensaje("danger");
+    setMensaje(
+      "No fue posible eliminar el producto.",
+    );
+    return;
+  }
+
+  const siguienteProducto = productos.find(
+    (producto) =>
+      producto.id !== productoActual.id,
+  );
+
+  setProductoSeleccionado(
+    siguienteProducto?.id ?? "",
+  );
+
+  setTipoMensaje("success");
+  setMensaje(
+    "Producto eliminado correctamente.",
+  );
+};
 
   return (
     <section className="card shadow-sm border-0 mb-5">
@@ -259,35 +306,69 @@ export function AdminProductsPage() {
 <h3 className="h5 mb-3">
   Editar producto
 </h3>
-        <label className="form-label" htmlFor="productoSeleccionado">
-          Categoría
-        </label>
-        <select
-          className="form-select mb-4"
-          id="productoSeleccionado"
-          value={productoSeleccionado}
-          onChange={(evento) => setProductoSeleccionado(evento.target.value)}
-        >
-          {categorias.map((categoria) => (
-            <option key={categoria} value={categoria}>
-              {categoria}
-            </option>
-          ))}
-        </select>
+        <label
+  className="form-label"
+  htmlFor="productoSeleccionado"
+>
+  Producto
+</label>
+
+<select
+  className="form-select mb-4"
+  id="productoSeleccionado"
+  value={productoSeleccionado}
+  onChange={(evento) =>
+    setProductoSeleccionado(evento.target.value)
+  }
+>
+  {productos.map((producto) => (
+    <option
+      key={producto.id}
+      value={producto.id}
+    >
+      {producto.id} - {producto.nombre}
+    </option>
+  ))}
+</select>
         {productoActual && (
           <form key={productoActual.id} onSubmit={guardarDatosProducto}>
             <div className="row g-3">
+              <div className="col-md-6">
+  <label
+    className="form-label"
+    htmlFor="producto-categoria"
+  >
+    Categoría
+  </label>
+
+  <select
+    className="form-select"
+    id="producto-categoria"
+    name="categoria"
+    defaultValue={productoActual.categoria}
+    required
+  >
+    {categorias.map((categoria) => (
+      <option
+        key={categoria}
+        value={categoria}
+      >
+        {categoria}
+      </option>
+    ))}
+  </select>
+</div>
               {(
                 [
                   ["id","Código",productoActual.id],
-                  ["categoria", "Categoría", productoActual.categoria],
                   ["nombre", "Nombre", productoActual.nombre],
                   ["marca", "Marca", productoActual.marca],
                   ["modelo", "Modelo", productoActual.modelo],
                   ["stock", "Stock", productoActual.stock],
                   ["precio", "Precio", productoActual.precio],
                 ] as const
-              ).map(([name, label, value]) => (
+              )
+              .map(([name, label, value]) => (
                 <div className="col-md-6" key={name}>
                   <label className="form-label" htmlFor={`producto-${name}`}>
                     {label}
@@ -324,9 +405,24 @@ export function AdminProductsPage() {
                 />
               </div>
             </div>
-            <button className="btn btn-primary mt-4" type="submit">
-              Guardar cambios
-            </button>
+           <div className="d-flex gap-2 mt-4">
+
+  <button
+    className="btn btn-primary"
+    type="submit"
+  >
+    Guardar cambios
+  </button>
+
+  <button
+    className="btn btn-danger"
+    type="button"
+    onClick={borrarProducto}
+  >
+    Eliminar producto
+  </button>
+
+</div>
           </form>
         )}
       </div>

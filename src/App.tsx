@@ -12,7 +12,7 @@ import {
 } from "./pages/store";
 import {
   Gestion,
-  RutaCliente,
+  RutaUsuario,
   RutaPersonal,
 } from "./pages/ManagementPages";
 import { Login } from "./pages/LoginPage";
@@ -31,9 +31,9 @@ function Aplicacion() {
             <Route
               path="/carrito"
               element={
-                <RutaCliente>
+                <RutaUsuario>
                   <Carrito />
-                </RutaCliente>
+                </RutaUsuario>
               }
             />
             <Route

@@ -63,7 +63,7 @@ export const Header = () => {
                 {label}
               </NavLink>
             ))}
-            {usuarioActual?.rol === "cliente" && (
+            {usuarioActual&& (
               <NavLink
                 to="/carrito"
                 className={({ isActive }) =>

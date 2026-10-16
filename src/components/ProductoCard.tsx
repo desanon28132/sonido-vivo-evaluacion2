@@ -71,27 +71,33 @@ export const ProductoCard = ({ producto }: { producto: Producto }) => {
           >
             Ver detalle
           </Link>
-          {usuarioActual?.rol === "cliente" ? (
-            <button
-              className="btn btn-primary"
-              type="button"
-              disabled={producto.stock <= 0}
-              onClick={agregar}
-            >
-              {producto.stock <= 0 ? "Sin stock" : "Agregar al carrito"}
-            </button>
-          ) : !usuarioActual ? (
-            <Link className="btn btn-primary" to="/login">
-              Inicia sesión para comprar
-            </Link>
-          ) : (
-            <p className="small text-secondary mb-0">
-              Las cuentas de personal no pueden comprar.
-            </p>
-          )}
-          {mensaje && usuarioActual?.rol === "cliente" && (
-            <p className="small mt-2 mb-0" role="status">{mensaje}</p>
-          )}
+         {usuarioActual ? (
+  <button
+    className="btn btn-primary"
+    type="button"
+    disabled={producto.stock <= 0}
+    onClick={agregar}
+  >
+    {producto.stock <= 0
+      ? "Sin stock"
+      : "Agregar al carrito"}
+  </button>
+) : (
+  <Link
+    className="btn btn-primary"
+    to="/login"
+  >
+    Inicia sesión para comprar
+  </Link>
+)}
+{mensaje && usuarioActual && (
+  <p
+    className="small mt-2 mb-0"
+    role="status"
+  >
+    {mensaje}
+  </p>
+)}
         </div>
       </article>
     </div>

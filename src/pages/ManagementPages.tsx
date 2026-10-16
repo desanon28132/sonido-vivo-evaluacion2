@@ -4,10 +4,17 @@ import { useStore } from "../context/StoreContext";
 import { AdminPage } from "./admin/AdminPage";
 import { VendedorPage } from "./VendedorPage";
 
-export function RutaCliente({ children }: { children: ReactNode }) {
+export function RutaUsuario({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const { usuarioActual } = useStore();
-  if (!usuarioActual) return <Navigate to="/login" replace />;
-  if (usuarioActual.rol !== "cliente") return <Navigate to="/gestion" replace />;
+
+  if (!usuarioActual) {
+    return <Navigate to="/login" replace />;
+  }
+
   return <>{children}</>;
 }
 

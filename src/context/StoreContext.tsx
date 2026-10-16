@@ -13,6 +13,7 @@ const CLAVE_PRODUCTOS = "sonidovivo_productos";
 const CLAVE_CARRITO = "sonidovivo_carrito";
 const CLAVE_USUARIOS = "sonidovivo_usuarios";
 const CLAVE_SESION = "sonidovivo_sesion";
+const CLAVE_CATEGORIAS = "sonidovivo_categorias";
 
 export type RolUsuario = "cliente" | "vendedor" | "administrador";
 
@@ -43,6 +44,7 @@ interface StoreContextValue {
   carrito: ItemCarrito[];
   usuarios: Usuario[];
   usuarioActual: Usuario | null;
+  categorias: string[];
   agregarAlCarrito: (idProducto: string) => boolean;
   eliminarDelCarrito: (idProducto: string) => void;
   vaciarCarrito: () => void;
@@ -53,6 +55,13 @@ interface StoreContextValue {
   actualizarStock: (idProducto: string, stock: number) => boolean;
   actualizarProducto: (producto: Producto) => boolean;
   crearProducto: (producto: Producto) => boolean;
+  eliminarProducto: (idProducto: string) => boolean;
+  crearCategoria: (nombre: string) => boolean;
+actualizarCategoria: (
+  nombreActual: string,
+  nombreNuevo: string,
+) => boolean;
+eliminarCategoria: (nombre: string) => boolean;
 }
 
 const StoreContext = createContext<StoreContextValue | null>(null);
@@ -78,6 +87,35 @@ function cargarProductos(): Producto[] {
   );
 
   return catalogoInicial;
+}
+function cargarCategorias(): string[] {
+  const guardadas =
+    localStorage.getItem(CLAVE_CATEGORIAS);
+
+  if (guardadas !== null) {
+    return JSON.parse(guardadas) as string[];
+  }
+
+  const productosGuardados =
+    leerLocalStorage<Producto[]>(
+      CLAVE_PRODUCTOS,
+      catalogoInicial,
+    );
+
+  const categoriasIniciales = [
+    ...new Set(
+      productosGuardados.map(
+        (producto) => producto.categoria,
+      ),
+    ),
+  ];
+
+  localStorage.setItem(
+    CLAVE_CATEGORIAS,
+    JSON.stringify(categoriasIniciales),
+  );
+
+  return categoriasIniciales;
 }
 
 function cargarUsuarios(): Usuario[] {
@@ -158,6 +196,8 @@ function cargarUsuarios(): Usuario[] {
 
 export const StoreProvider = ({ children }: { children: ReactNode }) => {
   const [productos, setProductos] = useState<Producto[]>(cargarProductos);
+  const [categorias, setCategorias] =
+  useState<string[]>(cargarCategorias);
   const [carrito, setCarrito] = useState<ItemCarrito[]>(() =>
     leerLocalStorage<ItemCarrito[]>(CLAVE_CARRITO, []),
   );
@@ -179,11 +219,12 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
   const value = useMemo<StoreContextValue>(
     () => ({
       productos,
+      categorias,
       carrito,
       usuarios,
       usuarioActual,
       agregarAlCarrito: (idProducto) => {
-        if (usuarioActual?.rol !== "cliente") return false;
+        if (!usuarioActual) return false;
         const producto = productos.find((item) => item.id === idProducto);
         if (!producto || producto.stock <= 0) return false;
 
@@ -217,9 +258,9 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
         ),
       vaciarCarrito: () => setCarrito([]),
       finalizarCompra: () => {
-        if (usuarioActual?.rol !== "cliente") {
-          return "Solo los clientes pueden realizar compras.";
-        }
+       if (!usuarioActual) {
+  return "Debes iniciar sesión para realizar una compra.";
+}
         if (carrito.length === 0) return "No existen productos para comprar.";
 
         for (const item of carrito) {
@@ -313,6 +354,7 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
     nuevoProducto,
   ];
 
+
   localStorage.setItem(
     CLAVE_PRODUCTOS,
     JSON.stringify(actualizados),
@@ -322,6 +364,167 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
 
   return true;
 },
+eliminarProducto: (idProducto) => {
+  if (usuarioActual?.rol !== "administrador") {
+    return false;
+  }
+
+  const existe = productos.some(
+    (producto) => producto.id === idProducto,
+  );
+
+  if (!existe) {
+    return false;
+  }
+
+  const actualizados = productos.filter(
+    (producto) => producto.id !== idProducto,
+  );
+
+
+  localStorage.setItem(
+    CLAVE_PRODUCTOS,
+    JSON.stringify(actualizados),
+  );
+
+  setProductos(actualizados);
+
+  setCarrito((carritoActual) =>
+    carritoActual.filter(
+      (item) => item.idProducto !== idProducto,
+    ),
+  );
+  
+
+  return true;
+},
+crearCategoria: (nombre) => {
+  if (
+    usuarioActual?.rol !== "administrador"
+  ) {
+    return false;
+  }
+
+  const nuevaCategoria = nombre.trim();
+
+  if (!nuevaCategoria) {
+    return false;
+  }
+
+  const existe = categorias.some(
+    (categoria) =>
+      categoria.toLowerCase() ===
+      nuevaCategoria.toLowerCase(),
+  );
+
+  if (existe) {
+    return false;
+  }
+
+  const actualizadas = [
+    ...categorias,
+    nuevaCategoria,
+  ];
+
+  localStorage.setItem(
+    CLAVE_CATEGORIAS,
+    JSON.stringify(actualizadas),
+  );
+
+  setCategorias(actualizadas);
+
+  return true;
+},
+actualizarCategoria: (
+  nombreActual,
+  nombreNuevo,
+) => {
+  if (
+    usuarioActual?.rol !== "administrador"
+  ) {
+    return false;
+  }
+
+  const nuevoNombre = nombreNuevo.trim();
+
+  if (!nuevoNombre) {
+    return false;
+  }
+
+  const existe = categorias.some(
+    (categoria) =>
+      categoria.toLowerCase() ===
+        nuevoNombre.toLowerCase() &&
+      categoria !== nombreActual,
+  );
+
+  if (existe) {
+    return false;
+  }
+
+  const categoriasActualizadas =
+    categorias.map((categoria) =>
+      categoria === nombreActual
+        ? nuevoNombre
+        : categoria,
+    );
+
+  const productosActualizados =
+    productos.map((producto) =>
+      producto.categoria === nombreActual
+        ? {
+            ...producto,
+            categoria: nuevoNombre,
+          }
+        : producto,
+    );
+
+  localStorage.setItem(
+    CLAVE_CATEGORIAS,
+    JSON.stringify(categoriasActualizadas),
+  );
+
+  localStorage.setItem(
+    CLAVE_PRODUCTOS,
+    JSON.stringify(productosActualizados),
+  );
+
+  setCategorias(categoriasActualizadas);
+  setProductos(productosActualizados);
+
+  return true;
+},
+eliminarCategoria: (nombre) => {
+  if (
+    usuarioActual?.rol !== "administrador"
+  ) {
+    return false;
+  }
+
+  const tieneProductos = productos.some(
+    (producto) =>
+      producto.categoria === nombre,
+  );
+
+  if (tieneProductos) {
+    return false;
+  }
+
+  const actualizadas = categorias.filter(
+    (categoria) =>
+      categoria !== nombre,
+  );
+
+  localStorage.setItem(
+    CLAVE_CATEGORIAS,
+    JSON.stringify(actualizadas),
+  );
+
+  setCategorias(actualizadas);
+
+  return true;
+},
+
       actualizarProducto: (actualizado) => {
         if (
           usuarioActual?.rol !== "administrador" ||
@@ -348,7 +551,7 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
         return true;
       },
     }),
-    [productos, carrito, usuarios, usuarioActual],
+    [productos, categorias, carrito, usuarios, usuarioActual],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
